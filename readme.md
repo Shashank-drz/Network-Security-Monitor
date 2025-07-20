@@ -76,7 +76,7 @@ The data flows through the NetMon components in a simple, logical pipeline:
 4.  **Access the Dashboard:**
     Open your web browser and navigate to `http://localhost:3000`.
     - **Username:** `admin`
-    - **Password:** `admin`
+    - **Password:** `NSMadmin`
 
     The "Loki Findings" dashboard will be available to view the correlated alerts.
 
