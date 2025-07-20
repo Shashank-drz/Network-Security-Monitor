@@ -1,0 +1,17 @@
+rules:
+  - name: "High Severity Alert"
+    condition: "alert.severity == 3"
+
+  - name: "Spotify P2P Client Detected"
+    condition: "alert.signature == \"ET INFO Spotify P2P Client\""
+
+  - name: "ICMP Alert"
+    condition: "proto == \"ICMP\""
+
+  - name: "Spotify Followed by High Severity Alert"
+    sequence:
+      time_window: 60 # in seconds
+      rules:
+        - "Spotify P2P Client Detected"
+        - "High Severity Alert"
+

@@ -1,0 +1,71 @@
+services:
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: nsm_loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - nsm_network
+    mem_limit: 1g
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: nsm_promtail
+    volumes:
+      - ./logs/corr_engine_output:/var/log/corr_engine_output:ro
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+    command: -config.file=/etc/promtail/config.yml
+    networks:
+      - nsm_network
+    mem_limit: 512m
+    restart: unless-stopped
+
+  suricata:
+    image: jasonish/suricata:latest
+    container_name: nsm_suricata
+    volumes:
+      - ./pcaps:/pcaps:ro
+      - ./logs/suricata:/var/log/suricata
+    command: ["-r", "/pcaps", "--pcap-file-continuous", "-l", "/var/log/suricata"]
+    mem_limit: 2g
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: nsm_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./logs/grafana_data:/var/lib/grafana
+      - ./grafana/grafana.ini:/etc/grafana/grafana.ini
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    user: "1000"
+    networks:
+      - nsm_network
+    mem_limit: 1.5g
+    restart: unless-stopped
+
+  corr-engine:
+    build:
+      context: ./corr-engine
+      dockerfile: Dockerfile
+    container_name: nsm_corr_engine
+    command: ["./build/corr_engine", "/app/rules/rules.yaml", "/data/suricata", "/app/output"]
+    volumes:
+      - ./logs/suricata:/data/suricata:ro
+      - ./corr-engine/rules:/app/rules:ro
+      - ./logs/corr_engine_output:/app/output
+    networks:
+      - nsm_network
+    mem_limit: 1g
+    restart: unless-stopped
+
+networks:
+  nsm_network:
+    driver: bridge
