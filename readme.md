@@ -4,8 +4,6 @@
 
 NetMon is a powerful, containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the high-performance Suricata IDS engine to generate alerts from network data (PCAP files), which are then processed by a custom-built C++ correlation engine. This allows for flexible, high-speed analysis of security events, with the results visualized in a Grafana dashboard.
 
-This project is an ideal portfolio piece for demonstrating skills in C++, cybersecurity principles, data pipelines, and Docker-based microservice architectures.
-
 ## Key Features
 
 - **High-Performance Intrusion Detection**: Utilizes Suricata to analyze network traffic and generate detailed JSON-based event logs.
