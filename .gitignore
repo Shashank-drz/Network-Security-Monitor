@@ -4,9 +4,7 @@ app/logs/
 # Ignore build artifacts from the C++ engine
 app/corr-engine/build/
 
-# Ignore hidden local guides
-.demo_guide.txt
-.project_explanation.md
+
 
 # Ignore common OS files
 .DS_Store
