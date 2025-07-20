@@ -12,7 +12,7 @@
 #include "nlohmann/json.hpp"
 #include "yaml-cpp/yaml.h"
 
-// Forward declarations
+// forward declarations
 class Rule; 
 class CorrelationEngine;
 
@@ -86,16 +86,39 @@ RuleValue ParseRuleValue(const std::string& value_str) {
     try {
         return std::stod(value_str);
     } catch (const std::invalid_argument&) {
-        // This case should ideally be handled more gracefully
+        // this can be improved, commenting to check and edit later
         return value_str;
     }
 }
 
 
 SimpleCondition ParseSimpleCondition(const std::string& condition_str) {
-    std::istringstream iss(condition_str);
     std::string key, op, value_str;
-    iss >> key >> op >> value_str;
+    size_t op_pos = std::string::npos;
+    
+    const std::vector<std::string> operators = {"==", "!=", ">=", "<=", ">", "<"};
+    for (const auto& o : operators) {
+        op_pos = condition_str.find(o);
+        if (op_pos != std::string::npos) {
+            op = o;
+            break;
+        }
+    }
+
+    if (op_pos == std::string::npos) {
+        // handle error: no operator found
+        throw std::runtime_error("Invalid condition format: no operator found in '" + condition_str + "'");
+    }
+
+    key = condition_str.substr(0, op_pos);
+    value_str = condition_str.substr(op_pos + op.length());
+
+    // trim whitespace from key and value. (reason for all those empty logs) Perhaps I can make this more efficient later
+    key.erase(0, key.find_first_not_of(" \t\n\r"));
+    key.erase(key.find_last_not_of(" \t\n\r") + 1);
+    value_str.erase(0, value_str.find_first_not_of(" \t\n\r"));
+    value_str.erase(value_str.find_last_not_of(" \t\n\r") + 1);
+
     return {key, op, ParseRuleValue(value_str)};
 }
 
@@ -105,11 +128,11 @@ void CorrelationEngine::LoadRules(const std::string& rules_path) {
         for (const auto& rule_node : config["rules"]) {
             std::string name = rule_node["name"].as<std::string>();
             if (rule_node["condition"]) {
-                // Simple rule
+                // simple rule
                 Condition cond = ParseSimpleCondition(rule_node["condition"].as<std::string>());
                 rules_.emplace_back(name, cond);
             } else if (rule_node["sequence"]) {
-                // Sequence rule
+                // sequence rule
                 SequenceCondition seq;
                 seq.time_window_seconds = rule_node["sequence"]["time_window"].as<int>();
                 for (const auto& rule_name_node : rule_node["sequence"]["rules"]) {
@@ -159,7 +182,7 @@ bool CorrelationEngine::EvaluateSimpleCondition(const SimpleCondition& cond, con
             if (cond.op == "<=") return alert_val <= rule_val;
         }
     } catch (const json::exception&) {
-        return false; // Key not found or type mismatch
+        return false; // key not found or type mismatch
     }
     return false;
 }
@@ -169,10 +192,10 @@ void CorrelationEngine::EvaluateSequenceRules(const std::string& matched_rule_na
     std::string src_ip = event["src_ip"];
     auto now = std::chrono::system_clock::now();
 
-    // Add the current event to the state
+    // add the current event to the state
     state_by_ip_[src_ip].push_back({matched_rule_name, now});
 
-    // Check all sequence rules
+    // check all sequence rules
     for (const auto& rule : rules_) {
         if (!std::holds_alternative<SequenceCondition>(rule.GetCondition())) continue;
         
@@ -182,7 +205,7 @@ void CorrelationEngine::EvaluateSequenceRules(const std::string& matched_rule_na
 
         if (recent_events.size() < required_rules.size()) continue;
 
-        // Check if the last N events match the required sequence
+        // check if the last N events match the required sequence
         bool sequence_matched = true;
         size_t event_offset = recent_events.size() - required_rules.size();
         for (size_t i = 0; i < required_rules.size(); ++i) {
@@ -193,7 +216,7 @@ void CorrelationEngine::EvaluateSequenceRules(const std::string& matched_rule_na
         }
 
         if (sequence_matched) {
-            // Check if the sequence occurred within the time window
+            // check if the sequence occurred within the time window
             auto time_diff = now - recent_events[event_offset].timestamp;
             auto seconds_diff = std::chrono::duration_cast<std::chrono::seconds>(time_diff).count();
 
@@ -206,19 +229,20 @@ void CorrelationEngine::EvaluateSequenceRules(const std::string& matched_rule_na
                 findings_out << finding.dump() << std::endl;
                 std::cout << "[MATCH] Sequence Rule '" << rule.GetName() << "' matched for IP " << src_ip << std::endl;
                 
-                // Clear events for this IP to prevent duplicate alerts
+                // clear events for this IP to prevent duplicates 
                 recent_events.clear(); 
             }
         }
     }
 }
 
-// Periodically cleans up events older than the longest time window to prevent memory growth.
+// the state map can grow indefinitely in a long-running process. 
+// need to prune old events periodically to prevent a memory leak.
 void CorrelationEngine::CleanupOldEvents() {
     static auto last_cleanup = std::chrono::system_clock::now();
     auto now = std::chrono::system_clock::now();
     if (std::chrono::duration_cast<std::chrono::seconds>(now - last_cleanup).count() < 60) {
-        return; // Cleanup every 60 seconds
+        return; // cleanup every 60s
     }
 
     int max_window = 0;
@@ -247,7 +271,7 @@ void CorrelationEngine::ProcessEvent(const std::string& line, std::ofstream& fin
     try {
         json event = json::parse(line);
         if (event.value("event_type", "") != "alert") {
-            return; // We only process alerts
+            return; //  only processing alerts (for now - improve later)
         }
 
         for (const auto& rule : rules_) {
@@ -261,14 +285,14 @@ void CorrelationEngine::ProcessEvent(const std::string& line, std::ofstream& fin
                     findings_out << finding.dump() << std::endl;
                     std::cout << "[MATCH] Simple Rule '" << rule.GetName() << "' matched." << std::endl;
 
-                    // Check if this match completes any sequence rules
+                    // check if this match completes any sequence rules
                     EvaluateSequenceRules(rule.GetName(), event, findings_out);
                 }
             }
         }
         CleanupOldEvents();
     } catch (const json::parse_error&) {
-        // Ignore lines that aren't in a valid JSON format
+        // ignore lines that aren't in a valid JSON format
     }
 }
 
@@ -281,7 +305,7 @@ void MonitorLogFile(const std::string& log_path, CorrelationEngine& engine, std:
         return;
     }
     
-    log_stream.seekg(0, std::ios::end); // Start from the end of the file
+    log_stream.seekg(0, std::ios::end); // start from the end of the file
 
     while (true) {
         std::string line;
@@ -290,7 +314,7 @@ void MonitorLogFile(const std::string& log_path, CorrelationEngine& engine, std:
         }
 
         if (log_stream.eof()) {
-            log_stream.clear(); // Clear EOF flag to allow further reading
+            log_stream.clear(); // clear EOF flag to allow further reading
         }
         
         std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -311,7 +335,7 @@ int main(int argc, char* argv[]) {
     try {
         engine.LoadRules(rules_path);
     } catch (...) {
-        return 1; // Error already printed in LoadRules
+        return 1; // because error already printed in LoadRules
     }
 
     std::ofstream findings_out(output_path, std::ios_base::app);
@@ -322,7 +346,7 @@ int main(int argc, char* argv[]) {
 
     std::cout << "[INFO] Starting persistent monitoring of " << suricata_log_path << std::endl;
     
-    // Loop to handle file recreation (e.g., log rotation)
+    // loop to handle file recreation (like log rotation)
     while (true) {
         MonitorLogFile(suricata_log_path, engine, findings_out);
         std::this_thread::sleep_for(std::chrono::seconds(5));
