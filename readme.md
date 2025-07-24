@@ -2,16 +2,16 @@
 
 ## Overview
 
-NetMon is a powerful, containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the high-performance Suricata IDS engine to generate alerts from network data (PCAP files), which are then processed by a custom-built C++ correlation engine. This allows for flexible, high-speed analysis of security events, with the results visualized in a Grafana dashboard.
+NetMon is a powerful, containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the Suricata IDS engine to generate alerts from PCAP files, which are then processed by a stateful C++ correlation engine. This allows for fflexible and real time analysis of security events, with the results visualized on a Grafana dashboard.
 
 ## Key Features
 
-- **High-Performance Intrusion Detection**: Utilizes Suricata to analyze network traffic and generate detailed JSON-based event logs.
+- **High-Performance Intrusion Detection**: Utilizes Suricata to analyze network traffic and generate detailed JSON event logs.
 - **Advanced C++ Alert Correlation**: A lightweight, high-performance correlation engine processes Suricata's output in near real-time.
 - **Stateful, Time-Based Analysis**: The engine can track the state of events over time, enabling the detection of complex, multi-stage attack patterns.
 - **Flexible Rule Engine**: Correlation rules are defined in a simple YAML file, supporting both simple, stateless checks and complex, stateful sequences.
-- **Centralized Logging & Visualization**: Findings are shipped via Promtail to Loki and visualized in a pre-configured Grafana dashboard.
-- **Containerized & Portable**: The entire suite is orchestrated with Docker Compose for easy setup and deployment.
+- **Centralized Logging & Visualization**: Findings are shipped via Promtail to Loki and visualized on an easily configured Grafana dashboard.
+- **Containerized & Portable**: The entire suite is orchestrated with Docker Compose for easy setup and deployment on local machines.
 
 ## Architecture
 
@@ -33,16 +33,16 @@ The data flows through the NetMon components in a simple, logical pipeline:
 
 1.  **Suricata**: Reads `.pcap` files from the `app/pcaps` directory and generates alerts in the `eve.json` format.
 2.  **Correlation Engine**: The C++ engine (`corr-engine`) monitors `eve.json`, applies the rules from `rules.yaml`, and writes matches to `findings.json`.
-3.  **Promtail/Loki**: Promtail tails `findings.json` and sends the findings to Loki for efficient storage and indexing.
-4.  **Grafana**: Uses Loki as a data source to populate the "Loki Findings" dashboard for real-time visualization.
+3.  **Promtail/Loki**: Promtail tails `findings.json` and sends the findings to Loki for storage and indexing.
+4.  **Grafana**: Uses Loki as a data source to populate the "Loki Findings" dashboard for a visualization.
 
-## Technology Stack
+## Tech Stack
 
 - **Correlation Engine**: C++
 - **Intrusion Detection**: Suricata
-- **Log Aggregation**: Grafana Loki
-- **Log Shipper**: Grafana Promtail
-- **Dashboarding**: Grafana
+- **Log Aggregation**: Loki (Grafana)
+- **Log Shipper**: Promtail (Grafana)
+- **Dashboarding**: Grafana 
 - **Containerization**: Docker & Docker Compose
 
 ## Getting Started
@@ -66,7 +66,7 @@ The data flows through the NetMon components in a simple, logical pipeline:
 3.  **Build and Launch the Environment:**
     From the `app` directory, run the following commands:
     ```bash
-    # Build the services, including the custom C++ engine
+    # Build all the services
     docker-compose build
 
     # Launch the environment in detached mode
@@ -79,6 +79,7 @@ The data flows through the NetMon components in a simple, logical pipeline:
     - **Password:** `NSMadmin`
 
     The "Loki Findings" dashboard will be available to view the correlated alerts.
+    Note: In some cases, a dashboard may not be visible so you'll have to manually import the dashboard from the `Grafana/provisioning` directory
 
 ## Customizing Rules
 
