@@ -55,8 +55,7 @@ services:
     build:
       context: ./corr-engine
       dockerfile: Dockerfile
-    container_name: nsm_corr_engine
-    command: ["./build/corr_engine", "/app/rules/rules.yaml", "/data/suricata", "/app/output"]
+    command: sh -c "while [ ! -f /data/suricata/eve.json ]; do echo 'Waiting for eve.json to be created...'; sleep 2; done; ./build/corr_engine /app/rules/rules.yaml /data/suricata /app/output"   
     volumes:
       - ./logs/suricata:/data/suricata:ro
       - ./corr-engine/rules:/app/rules:ro
