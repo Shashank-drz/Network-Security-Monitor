@@ -268,7 +268,7 @@ void CorrelationEngine::ProcessEvent(const std::string& line, std::ofstream& fin
         }
         CleanupOldEvents();
     } catch (const json::parse_error&) {
-        // Ignore lines that aren't valid JSON
+        // Ignore lines that aren't in a valid JSON format
     }
 }
 
