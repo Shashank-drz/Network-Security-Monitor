@@ -2,7 +2,7 @@
 
 ## Overview
 
-NetMon is a powerful, containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the Suricata IDS engine to generate alerts from PCAP files, which are then processed by a stateful C++ correlation engine. This allows for fflexible and real time analysis of security events, with the results visualized on a Grafana dashboard.
+NetMon is a containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the Suricata IDS engine to generate alerts from PCAP files, which are then processed by a stateful C++ correlation engine. This allows for fflexible and real time analysis of security events, with the results visualized on a Grafana dashboard.
 
 ## Key Features
 
