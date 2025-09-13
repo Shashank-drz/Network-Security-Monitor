@@ -32,7 +32,7 @@ Configure the Docker daemon to use a specific public DNS server.
     sudo systemctl restart docker
     ```
 
-After restarting, run `docker compose up -d` again from the `nsm-cpp-engine` directory.
+After restarting, run `docker compose up -d` again from the `NetMon/app` directory.
 
 ---
 
@@ -51,19 +51,19 @@ mkdir: can't create directory '/var/lib/grafana/plugins': Permission denied
 
 **Cause:**
 
-The Grafana process inside the container does not have permission to write to the data directory (`./nsm-cpp-engine/logs/grafana_data`) on the host machine. This happens because the directory is owned by `root`, but the container runs as `user: "1000"`.
+The Grafana process inside the container does not have permission to write to the data directory (`./NetMon/app/logs/grafana_data`) on the host machine. This happens because the directory is owned by `root`, but the container runs as `user: "1000"`.
 
 **Solution:**
 
 Change the ownership of the host directory to match the user ID in the container.
 
-1.  Navigate to the `nsm-cpp-engine` directory and stop the services if they are running:
+1.  Navigate to the `NetMon/app` directory and stop the services if they are running:
     ```bash
-    cd nsm-cpp-engine
+    cd NetMon/app
     docker compose down
     ```
 
-2.  Change the directory ownership. This command must be run from the `nsm-cpp-engine` directory.
+2.  Change the directory ownership. This command must be run from the `NetMon/app` directory.
     ```bash
     sudo chown -R 1000:1000 ./logs/grafana_data
     ```

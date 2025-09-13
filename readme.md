@@ -2,7 +2,9 @@
 
 ## Overview
 
-NetMon is a containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the Suricata IDS engine to generate alerts from PCAP files, which are then processed by a stateful C++ correlation engine. This allows for fflexible and real time analysis of security events, with the results visualized on a Grafana dashboard.
+NetMon is a containerized Network Security Monitoring (NSM) suite designed for real-time analysis of network traffic. It uses the Suricata IDS engine to generate alerts from PCAP files, which are then processed by a stateful C++ correlation engine. This allows for flexible and real-time analysis of security events, with the results visualized on a Grafana dashboard.
+
+## Dashboard Preview
 
 ## Key Features
 
@@ -22,28 +24,19 @@ The data flows through the NetMon components in a simple, logical pipeline:
 |  PCAP File(s)   |----->|      Suricata      |----->|  Correlation    |----->|  Promtail  |----->|   Loki  |
 | (Network Data)  |      | (Generates Alerts) |      |  Engine (C++)   |      | (Ships Logs)  |      | (Stores)|
 +-----------------+      +--------------------+      +-----------------+      +------------+      +---------+
-                                                                                                      ^
-                                                                                                      |
-                                                                                                +-----------+
-                                                                                                |  Grafana  |
-                                                                                                | (Queries &|
-                                                                                                | Visualizes)|
-                                                                                                +-----------+
+                                                                                                     ^
+                                                                                                     |
+                                                                                               +-----------+
+                                                                                               |  Grafana  |
+                                                                                               | (Queries &|
+                                                                                               | Visualizes)|
+                                                                                               +-----------+
 ```
 
-1.  **Suricata**: Reads `.pcap` files from the `app/pcaps` directory and generates alerts in the `eve.json` format.
-2.  **Correlation Engine**: The C++ engine (`corr-engine`) monitors `eve.json`, applies the rules from `rules.yaml`, and writes matches to `findings.json`.
+1.  **Suricata**: Reads `.pcap` files from the `app/pcaps` directory and generates alerts in `eve.json` format.
+2.  **Correlation Engine**: The C++ engine (`corr-engine`) monitors `eve.json`, applies rules from `rules.yaml`, and writes matches to `findings.json`.
 3.  **Promtail/Loki**: Promtail tails `findings.json` and sends the findings to Loki for storage and indexing.
-4.  **Grafana**: Uses Loki as a data source to populate the "Loki Findings" dashboard for a visualization.
-
-## Tech Stack
-
-- **Correlation Engine**: C++
-- **Intrusion Detection**: Suricata
-- **Log Aggregation**: Loki (Grafana)
-- **Log Shipper**: Promtail (Grafana)
-- **Dashboarding**: Grafana 
-- **Containerization**: Docker & Docker Compose
+4.  **Grafana**: Uses Loki as a data source to populate the "Correlation Engine Findings" dashboard.
 
 ## Getting Started
 
@@ -56,21 +49,17 @@ The data flows through the NetMon components in a simple, logical pipeline:
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
+    git clone https://github.com/your-username/NetMon.git
     cd NetMon/app
     ```
 
 2.  **Add Network Traffic (PCAP files):**
-    Place any `.pcap` files you want to analyze into the `app/pcaps` directory. A sample file is already included.
+    Place any `.pcap` files you want to analyze into the `app/pcaps` directory. A sample PCAP known to generate alerts is included.
 
 3.  **Build and Launch the Environment:**
-    From the `app` directory, run the following commands:
+    From the `app` directory, run the following command:
     ```bash
-    # Build all the services
-    docker-compose build
-
-    # Launch the environment in detached mode
-    docker-compose up -d
+    docker-compose up -d --build
     ```
 
 4.  **Access the Dashboard:**
@@ -78,66 +67,29 @@ The data flows through the NetMon components in a simple, logical pipeline:
     - **Username:** `admin`
     - **Password:** `NSMadmin`
 
-    The "Loki Findings" dashboard will be available to view the correlated alerts.
-    Note: In some cases, a dashboard may not be visible so you'll have to manually import the dashboard from the `Grafana/provisioning` directory
+    The "Correlation Engine Findings" dashboard will be available to view the correlated alerts.
 
 ## Customizing Rules
 
-The core of the correlation engine is the `rules.yaml` file, located at `app/corr-engine/rules/rules.yaml`. You can add or modify rules to detect specific patterns. The engine supports two types of rules: `simple` and `sequence`.
+The core of the engine is the `rules.yaml` file (`app/corr-engine/rules/rules.yaml`). You can add rules to detect specific patterns.
 
-### Simple Rules
-
-Simple rules are stateless and trigger on a single event that matches a condition. They support `==`, `!=`, `>=`, `<=`, `>`, and `<` operators.
-
-**Example:**
+**Example Rules:**
 ```yaml
 rules:
-  - name: "High Severity Alert"
-    condition: "alert.severity == 3"
-  
-  - name: "ICMP Alert"
-    condition: "proto == \"ICMP\""
-```
+  - name: "Test Rule - Malicious TOP Domain Query"
+    condition: 'alert.signature == "ET DNS Query to a *.top domain - Likely Hostile"'
 
-### Sequence Rules
-
-Sequence rules are stateful and trigger when two or more simple rules are matched by the **same source IP** within a defined `time_window`. This is powerful for detecting multi-stage activity.
-
-**Example:**
-This rule triggers if a `Spotify P2P Client Detected` event is followed by a `High Severity Alert` from the same IP within 60 seconds.
-
-```yaml
-rules:
-  # First, define the simple rules that make up the sequence
-  - name: "Spotify P2P Client Detected"
-    condition: "alert.signature == \"ET INFO Spotify P2P Client\""
-  
-  - name: "High Severity Alert"
-    condition: "alert.severity == 3"
-
-  # Then, define the sequence rule that uses them
-  - name: "Spotify Followed by High Severity Alert"
-    sequence:
-      time_window: 60 # in seconds
-      rules:
-        - "Spotify P2P Client Detected"
-        - "High Severity Alert"
+  - name: "High Severity Alert Detected"
+    condition: "alert.severity == 1"
 ```
 
 ### Applying Changes
 
-After modifying `rules.yaml`, you must rebuild and restart the containers.
-
+After modifying `rules.yaml`, you must restart the services from the `app` directory:
 ```bash
-# From the app directory:
-
-# Optional: Clear previous findings for a clean slate
-sudo rm ./logs/corr_engine_output/findings.json
-
-# Rebuild and restart the services to apply new rules
-docker-compose up -d --force-recreate --build
+docker-compose up -d --force-recreate
 ```
 
 ## Troubleshooting
 
-For common issues, such as Docker DNS errors or Grafana permission problems, please refer to the [troubleshooting guide](./troubleshooting.md).
+For common issues, such as Docker DNS errors or Grafana permission problems, please refer to the [troubleshooting guide](./docs/troubleshooting.md).
