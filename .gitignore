@@ -8,3 +8,4 @@ app/corr-engine/build/
 
 # Ignore common OS files
 .DS_Store
+screenshot_guide.txt
