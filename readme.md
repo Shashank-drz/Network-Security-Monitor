@@ -49,8 +49,8 @@ The data flows through the NetMon components in a simple, logical pipeline:
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/NetMon.git
-    cd NetMon/app
+    git clone https://github.com/Shashank-drz/Network-Security-Monitor.git
+    cd Network-Security-Monitor/app
     ```
 
 2.  **Add Network Traffic (PCAP files):**
@@ -59,7 +59,7 @@ The data flows through the NetMon components in a simple, logical pipeline:
 3.  **Build and Launch the Environment:**
     From the `app` directory, run the following command:
     ```bash
-    docker-compose up -d --build
+    docker compose up -d --build
     ```
 
 4.  **Access the Dashboard:**
@@ -87,7 +87,7 @@ rules:
 
 After modifying `rules.yaml`, you must restart the services from the `app` directory:
 ```bash
-docker-compose up -d --force-recreate
+docker compose up -d --force-recreate
 ```
 
 ## Troubleshooting
