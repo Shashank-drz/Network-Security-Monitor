@@ -15,6 +15,7 @@ NetMon is a containerized Network Security Monitoring (NSM) suite designed for r
     <img src="screenshots/S3.png" alt="Detailed Alert View">
   </p>
 </details>
+
 ## Key Features
 
 - **High-Performance Intrusion Detection**: Utilizes Suricata to analyze network traffic and generate detailed JSON event logs.
