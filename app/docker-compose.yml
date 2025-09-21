@@ -21,6 +21,9 @@ services:
       - nsm_network
     mem_limit: 512m
     restart: unless-stopped
+    depends_on:
+      corr-engine:
+        condition: service_healthy
 
   suricata:
     image: jasonish/suricata:latest
@@ -55,7 +58,7 @@ services:
     build:
       context: ./corr-engine
       dockerfile: Dockerfile
-    command: sh -c "while [ ! -f /data/suricata/eve.json ]; do echo 'Waiting for eve.json to be created...'; sleep 2; done; ./build/corr_engine /app/rules/rules.yaml /data/suricata /app/output"   
+    command: sh -c "while [ ! -f /data/suricata/eve.json ]; do echo 'Waiting for eve.json to be created...'; sleep 2; done; ./build/corr_engine /app/rules/rules.yaml /data/suricata /app/output"
     volumes:
       - ./logs/suricata:/data/suricata:ro
       - ./corr-engine/rules:/app/rules:ro
@@ -64,7 +67,12 @@ services:
       - nsm_network
     mem_limit: 1g
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /app/output/findings.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   nsm_network:
-    driver: bridge
+   driver: bridge
