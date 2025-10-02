@@ -1,4 +1,6 @@
 # NetMon: A Dockerized Network Security Monitor with a Custom C++ Correlation Engine
+[![License](https://img.shields.io/github/license/Shashank-drz/Network-Security-Monitor)](LICENSE)
+
 
 ## Overview
 
