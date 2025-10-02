@@ -103,3 +103,7 @@ docker compose up -d --force-recreate
 ## Troubleshooting
 
 For common issues, such as Docker DNS errors or Grafana permission problems, please refer to the [troubleshooting guide](./docs/troubleshooting.md).
+
+## License
+
+MIT License © 2025 Shashank. See [LICENSE](LICENSE) for full text.
