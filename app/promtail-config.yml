@@ -32,7 +32,7 @@ scrape_configs:
           rule_name:
       - timestamp:
           source: timestamp
-          format: RFC3339Nano
+          format: "2006-01-02T15:04:05.000000Z0700"
 
   - job_name: suricata-logs
     static_configs:
@@ -59,4 +59,4 @@ scrape_configs:
           action: drop
       - timestamp:
           source: timestamp
-          format: RFC3339Nano
+          format: "2006-01-02T15:04:05.000000Z0700"
