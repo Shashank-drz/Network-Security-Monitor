@@ -28,8 +28,10 @@ scrape_configs:
           expressions:
             timestamp: timestamp
             rule_name: rule_name
+            correlation_id: correlation_id
       - labels:
           rule_name:
+          correlation_id:
       - timestamp:
           source: timestamp
           format: "2006-01-02T15:04:05.000000Z0700"
