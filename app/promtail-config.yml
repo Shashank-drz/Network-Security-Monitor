@@ -7,12 +7,58 @@ positions:
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
+    timeout: 30s
+    batchwait: 2s
+    batchsize: 262144        # 256 KB
+    backoff_config:
+      min_period: 500ms
+      max_period: 5s
+      max_retries: 20
 
 scrape_configs:
-- job_name: corr-engine-findings
-  static_configs:
-  - targets:
-      - localhost
-    labels:
-      job: corr-engine-findings
-      __path__: /var/log/corr_engine_output/findings.json
+  - job_name: correlation-findings
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: correlation-findings
+          __path__: /findings/findings.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            rule_name: rule_name
+            correlation_id: correlation_id
+      - labels:
+          rule_name:
+          correlation_id:
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000000Z0700"
+
+  - job_name: suricata-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: suricata-logs
+          __path__: /var/log/suricata/eve.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            event_type: event_type
+            src_ip: src_ip
+            dest_ip: dest_ip
+            alert_signature: alert.signature
+            alert_severity: alert.severity
+      - labels:
+          event_type:
+          src_ip:
+          dest_ip:
+      - match:
+          selector: '{job="suricata-logs", event_type!="alert"}'
+          action: drop
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000000Z0700"
