@@ -9,3 +9,26 @@ app/corr-engine/build/
 # Ignore common OS files
 .DS_Store
 screenshot_guide.txt
+# runtime data
+logs/
+findings/*.json
+
+# local build artifacts
+corr-engine/build/
+
+# editor noise
+.vscode/
+.idea/
+*.swp
+app/logs/
+app/findings/*.json
+app/promtail-config.yml.bak.*
+app/*.bak.*
+
+# build artifacts
+app/corr-engine/build/
+
+# editors
+.vscode/
+.idea/
+*.swp
