@@ -16,4 +16,4 @@ rules:
     condition: "alert.severity == 1"
 
   - name: "Malicious Outbound Connection to C2 Server"
-    condition: 'alert.signature == "ETPRO TROJAN Win32/Punto Switcher CnC Activity" and alert.dest_port == 8080"
+    condition: 'alert.signature == "ETPRO TROJAN Win32/Punto Switcher CnC Activity" and alert.dest_port == 8080'
