@@ -1,3 +1,19 @@
 rules:
-  - name: "Test Rule - Malicious TOP Domain Query"
-    condition: 'alert.signature == "ET DNS Query to a *.top domain - Likely Hostile"'
+  - name: "Potential Port Scan Detected"
+    condition: 'alert.signature == "GPL SCAN nmap"'
+
+  - name: "Exploit Attempt Detected"
+    condition: 'alert.category == "A Network Trojan was detected"'
+
+  - name: "Correlated Attack: Port Scan followed by Exploit Attempt"
+    sequence:
+      rules:
+        - "Potential Port Scan Detected"
+        - "Exploit Attempt Detected"
+      time_window: 60
+
+  - name: "High Severity Alert Detected"
+    condition: "alert.severity == 1"
+
+  - name: "Malicious Outbound Connection to C2 Server"
+    condition: 'alert.signature == "ETPRO TROJAN Win32/Punto Switcher CnC Activity" and alert.dest_port == 8080"
