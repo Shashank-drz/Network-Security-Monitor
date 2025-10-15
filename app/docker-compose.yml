@@ -8,7 +8,7 @@ services:
       - ./logs/suricata:/var/log/suricata
       # Uncomment and create ./suricata/rules if you later add custom rule sets:
       # - ./suricata/rules:/var/lib/suricata/rules:ro
-    command: ["-r", "/pcaps", "--pcap-file-continuous", "-l", "/var/log/suricata"]
+    command: sh -c "suricata-update && suricata -r /pcaps --pcap-file-continuous -l /var/log/suricata"
     restart: unless-stopped
     networks:
       - netmon
