@@ -8,7 +8,7 @@ services:
       - ./logs/suricata:/var/log/suricata
       # Uncomment and create ./suricata/rules if you later add custom rule sets:
       # - ./suricata/rules:/var/lib/suricata/rules:ro
-    command: ["-r", "/pcaps", "--pcap-file-continuous", "-l", "/var/log/suricata"]
+    command: sh -c "suricata-update; suricata -r /pcaps --pcap-file-continuous -l /var/log/suricata"
     restart: unless-stopped
     networks:
       - netmon
@@ -56,7 +56,7 @@ services:
       - ./promtail-config.yml:/etc/promtail/config.yml:ro
       - ./findings:/findings:ro
       - ./logs/suricata:/var/log/suricata:ro
-    command: -config.file=/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml --log.level=debug
     restart: unless-stopped
     networks:
       - netmon
@@ -70,7 +70,7 @@ services:
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - loki-data:/loki
-    command: -config.file=/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml -log.level=debug
     restart: unless-stopped
     networks:
       - netmon
