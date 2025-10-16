@@ -1,4 +1,3 @@
-// SPDX-License-Identifier: MIT
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -18,7 +17,6 @@
 #include "nlohmann/json.hpp"
 #include "yaml-cpp/yaml.h"
 
-// forward declarations
 class Rule;
 class CorrelationEngine;
 
@@ -44,7 +42,6 @@ struct RecentEvent {
     std::chrono::system_clock::time_point timestamp;
 };
 
-// UUIDv4 generator (no external deps)
 static std::string uuid_v4() {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -58,7 +55,6 @@ static std::string uuid_v4() {
         b[i + 2] = static_cast<uint8_t>((r >> 8) & 0xFF);
         b[i + 3] = static_cast<uint8_t>(r & 0xFF);
     }
-    // Set version (4) and variant (10xx)
     b[6] = static_cast<uint8_t>((b[6] & 0x0F) | 0x40);
     b[8] = static_cast<uint8_t>((b[8] & 0x3F) | 0x80);
 
@@ -68,6 +64,26 @@ static std::string uuid_v4() {
         oss << std::setw(2) << static_cast<int>(b[i]);
         if (i == 3 || i == 5 || i == 7 || i == 9) oss << '-';
     }
+    return oss.str();
+}
+
+static std::string current_timestamp_iso8601() {
+    auto now = std::chrono::system_clock::now();
+    auto now_time_t = std::chrono::system_clock::to_time_t(now);
+    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        now.time_since_epoch()) % 1000;
+    
+    std::tm tm_utc;
+    #ifdef _WIN32
+        gmtime_s(&tm_utc, &now_time_t);
+    #else
+        gmtime_r(&now_time_t, &tm_utc);
+    #endif
+    
+    std::ostringstream oss;
+    oss << std::put_time(&tm_utc, "%Y-%m-%dT%H:%M:%S");
+    oss << '.' << std::setfill('0') << std::setw(6) << (now_ms.count() * 1000);
+    oss << "+0000";
     return oss.str();
 }
 
@@ -89,6 +105,9 @@ public:
     void LoadRules(const std::string& rules_path);
     void ProcessEvent(const std::string& line, std::ofstream& findings_out);
 
+    std::streampos get_last_read_pos() const { return last_read_pos_; }
+    void set_last_read_pos(std::streampos pos) { last_read_pos_ = pos; }
+
 private:
     bool EvaluateSimpleCondition(const SimpleCondition& cond, const json& event);
     void EvaluateSequenceRules(const std::string& matched_rule_name, const json& event, std::ofstream& findings_out);
@@ -96,6 +115,7 @@ private:
 
     std::vector<Rule> rules_;
     std::unordered_map<std::string, std::vector<RecentEvent>> state_by_ip_;
+    std::streampos last_read_pos_ = 0;
 };
 
 RuleValue ParseRuleValue(const std::string& value_str) {
@@ -129,7 +149,6 @@ SimpleCondition ParseSimpleCondition(const std::string& condition_str) {
     key = condition_str.substr(0, op_pos);
     value_str = condition_str.substr(op_pos + op.length());
 
-    // trim
     key.erase(0, key.find_first_not_of(" \t\n\r"));
     key.erase(key.find_last_not_of(" \t\n\r") + 1);
     value_str.erase(0, value_str.find_first_not_of(" \t\n\r"));
@@ -155,7 +174,7 @@ void CorrelationEngine::LoadRules(const std::string& rules_path) {
                 rules_.emplace_back(name, seq);
             }
         }
-        std::cout << "[INFO] Loaded " << rules_.size() << " rules." << std::endl;
+        std::cerr << "[INFO] Loaded " << rules_.size() << " rules." << std::endl << std::flush;
     } catch (const YAML::Exception& e) {
         std::cerr << "[ERROR] Failed to load or parse rules file: " << e.what() << std::endl;
         throw;
@@ -175,6 +194,14 @@ bool CorrelationEngine::EvaluateSimpleCondition(const SimpleCondition& cond, con
         }
         if (!alert_value.contains(key_path)) return false;
         alert_value = alert_value.at(key_path);
+
+        std::cerr << "[DEBUG] Evaluating condition: key='" << cond.key << "', op='" << cond.op << "', rule_val='" << std::visit([](auto&& arg) -> std::string {
+            if constexpr (std::is_same_v<std::decay_t<decltype(arg)>, std::string>) {
+                return arg;
+            } else {
+                return std::to_string(arg);
+            }
+        }, cond.value) << "', alert_val='" << alert_value.dump() << "'" << std::endl << std::flush;
 
         if (std::holds_alternative<std::string>(cond.value)) {
             if (!alert_value.is_string()) return false;
@@ -230,13 +257,15 @@ void CorrelationEngine::EvaluateSequenceRules(const std::string& matched_rule_na
 
             if (seconds_diff <= seq.time_window_seconds) {
                 json finding;
-                finding["timestamp"] = event["timestamp"];
+                finding["timestamp"] = current_timestamp_iso8601();
+                finding["original_timestamp"] = event["timestamp"];
                 finding["rule_name"] = rule.GetName();
                 finding["original_event"] = event;
                 finding["details"] = "Matched event sequence: " + required_rules[0] + " -> " + required_rules[1];
                 finding["correlation_id"] = uuid_v4();
                 findings_out << finding.dump() << std::endl;
-                std::cout << "[MATCH] Sequence Rule '" << rule.GetName() << "' matched for IP " << src_ip << std::endl;
+                findings_out.flush();
+                std::cerr << "[MATCH] Sequence Rule '" << rule.GetName() << "' matched for IP " << src_ip << std::endl << std::flush;
 
                 recent_events.clear();
             }
@@ -273,22 +302,27 @@ void CorrelationEngine::CleanupOldEvents() {
 
 void CorrelationEngine::ProcessEvent(const std::string& line, std::ofstream& findings_out) {
     try {
+        std::cerr << "[DEBUG] ProcessEvent called with line: " << line << std::endl << std::flush;
         json event = json::parse(line);
         if (event.value("event_type", "") != "alert") {
+            std::cerr << "[DEBUG] Event is not an alert, skipping." << std::endl << std::flush;
             return;
         }
 
         for (const auto& rule : rules_) {
+            std::cerr << "[DEBUG] Checking rule: " << rule.GetName() << std::endl << std::flush;
             if (std::holds_alternative<SimpleCondition>(rule.GetCondition())) {
                 const auto& cond = std::get<SimpleCondition>(rule.GetCondition());
                 if (EvaluateSimpleCondition(cond, event)) {
                     json finding;
-                    finding["timestamp"] = event["timestamp"];
+                    finding["timestamp"] = current_timestamp_iso8601();
+                    finding["original_timestamp"] = event["timestamp"];
                     finding["rule_name"] = rule.GetName();
                     finding["original_event"] = event;
                     finding["correlation_id"] = uuid_v4();
                     findings_out << finding.dump() << std::endl;
-                    std::cout << "[MATCH] Simple Rule '" << rule.GetName() << "' matched." << std::endl;
+                    findings_out.flush();
+                    std::cerr << "[MATCH] Simple Rule '" << rule.GetName() << "' matched." << std::endl << std::flush;
 
                     EvaluateSequenceRules(rule.GetName(), event, findings_out);
                 }
@@ -296,27 +330,42 @@ void CorrelationEngine::ProcessEvent(const std::string& line, std::ofstream& fin
         }
         CleanupOldEvents();
     } catch (const json::parse_error&) {
-        // ignore invalid JSON lines
     }
 }
 
 void MonitorLogFile(const std::string& log_path, CorrelationEngine& engine, std::ofstream& findings_out) {
     std::ifstream log_stream(log_path);
     if (!log_stream.is_open()) {
-        std::cerr << "[ERROR] Cannot open log file: " << log_path << ". Retrying..." << std::endl;
+        std::cerr << "[ERROR] Cannot open log file: " << log_path << ". Retrying..." << std::endl << std::flush;
         return;
     }
 
-    log_stream.seekg(0, std::ios::end);
+    if (engine.get_last_read_pos() > 0) {
+        std::cerr << "[DEBUG] MonitorLogFile: Attempting to seek to position: " << engine.get_last_read_pos() << std::endl << std::flush;
+        log_stream.seekg(engine.get_last_read_pos());
+        if (log_stream.fail()) {
+            std::cerr << "[WARN] Failed to seek to saved position, starting from beginning" << std::endl;
+            log_stream.clear();
+            log_stream.seekg(0);
+        }
+        std::cerr << "[DEBUG] MonitorLogFile: File pointer after seekg: " << log_stream.tellg() << std::endl << std::flush;
+    }
 
     while (true) {
         std::string line;
         while (std::getline(log_stream, line)) {
+            std::cerr << "[DEBUG] MonitorLogFile read line: " << line << std::endl << std::flush;
             engine.ProcessEvent(line, findings_out);
         }
 
         if (log_stream.eof()) {
+            std::cerr << "[DEBUG] MonitorLogFile: Reached EOF. Current position: " << log_stream.tellg() << std::endl << std::flush;
+            auto pos = log_stream.tellg();
+            if (pos != static_cast<std::streampos>(-1)) {
+                engine.set_last_read_pos(pos);
+            }
             log_stream.clear();
+            std::cerr << "[DEBUG] MonitorLogFile: Stream state after clear: good=" << log_stream.good() << ", eof=" << log_stream.eof() << ", fail=" << log_stream.fail() << ", bad=" << log_stream.bad() << std::endl << std::flush;
         }
 
         std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -324,6 +373,7 @@ void MonitorLogFile(const std::string& log_path, CorrelationEngine& engine, std:
 }
 
 int main(int argc, char* argv[]) {
+    std::cerr << "[DEBUG] Main function started - Executable version check." << std::endl << std::flush;
     if (argc != 4) {
         std::cerr << "Usage: " << argv[0] << " <rules.yaml> <suricata_log_dir> <output_dir>" << std::endl;
         return 1;
@@ -346,12 +396,9 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::cout << "[INFO] Starting persistent monitoring of " << suricata_log_path << std::endl;
+    std::cerr << "[INFO] Starting persistent monitoring of " << suricata_log_path << std::endl << std::flush;
 
-    while (true) {
-        MonitorLogFile(suricata_log_path, engine, findings_out);
-        std::this_thread::sleep_for(std::chrono::seconds(5));
-    }
+    MonitorLogFile(suricata_log_path, engine, findings_out);
 
     return 0;
 }
