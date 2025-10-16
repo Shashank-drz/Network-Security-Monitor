@@ -17,3 +17,6 @@ rules:
 
   - name: "Malicious Outbound Connection to C2 Server"
     condition: 'alert.signature == "ETPRO TROJAN Win32/Punto Switcher CnC Activity" and alert.dest_port == 8080'
+
+  - name: "Malicious TOP Domain Query Detected"
+    condition: 'alert.signature == "ET DNS Query to a *.top domain - Likely Hostile"'
