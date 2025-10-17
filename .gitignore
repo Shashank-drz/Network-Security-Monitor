@@ -32,3 +32,21 @@ app/corr-engine/build/
 .vscode/
 .idea/
 *.swp
+# Backups and temps
+*.bak
+*.bak.*
+cop.txt
+gemini_context.txt
+session_context.md
+readmebak.md
+
+# Runtime/Generated
+pcaps/*.pcap  # Keep dir, ignore contents (add specific ones manually if needed)
+pcaps/*.zip
+app/pcaps/
+app/rules/  # Temp Suricata rules
+replay-*
+
+# Logs/Output (not in git status, but good practice)
+logs/
+findings/
