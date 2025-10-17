@@ -143,6 +143,8 @@ This allows analyzing historical PCAPs without Loki rejecting "old" timestamps.
    - Password: `NSMadmin`
    
    Navigate to **Dashboards** → **Correlation Engine Findings (Loki)**
+   
+   If a dashboard isn't visible, go to import new dashboard → Select app/grafana/provisioning/dashboards/loki-findings-dashboard.json → Datasource = Loki (Default)
 
 ### Verifying the Setup
 
