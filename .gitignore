@@ -41,10 +41,10 @@ session_context.md
 readmebak.md
 
 # Runtime/Generated
-pcaps/*.pcap  # Keep dir, ignore contents (add specific ones manually if needed)
+pcaps/*.pcap 
 pcaps/*.zip
 app/pcaps/
-app/rules/  # Temp Suricata rules
+app/rules/  
 replay-*
 
 # Logs/Output (not in git status, but good practice)
