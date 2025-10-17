@@ -1,24 +1,76 @@
-
 services:
+  loki:
+    image: grafana/loki:3.0.0
+    container_name: netmon-loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml -config.expand-env=true
+    volumes:
+      - ./loki:/etc/loki
+      - loki-data:/loki
+    networks:
+      - netmon
+    restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: 512m
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: netmon-promtail
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml:ro
+      - ./findings:/findings:ro
+      - ./logs/suricata:/var/log/suricata:ro
+    command: -config.file=/etc/promtail/config.yml -config.expand-env=true
+    depends_on:
+      - loki
+    networks:
+      - netmon
+    restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: 128m
+
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: netmon-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=NSMadmin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - loki
+    networks:
+      - netmon
+    restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: 256m
+
   suricata:
     image: jasonish/suricata:latest
     container_name: netmon-suricata
+    entrypoint: /bin/sh
+    stdin_open: true
+    tty: true
     volumes:
       - ./pcaps:/pcaps:ro
       - ./logs/suricata:/var/log/suricata
-      # Uncomment and create ./suricata/rules if you later add custom rule sets:
-      # - ./suricata/rules:/var/lib/suricata/rules:ro
-    command: sh -c "suricata-update; suricata -r /pcaps --pcap-file-continuous -l /var/log/suricata"
+    command: -c "suricata-update --no-reload; touch /var/log/suricata/eve.json; while true; do if ls /pcaps/*.pcap >/dev/null 2>&1; then echo 'Processing PCAPs...'; suricata -k none -c /etc/suricata/suricata.yaml -l /var/log/suricata -r /pcaps/*.pcap; else echo 'No PCAP files; sleeping 10s...'; fi; sleep 10; done"
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - netmon
     mem_limit: 1g
     healthcheck:
-      test: ["CMD-SHELL", "test -f /var/log/suricata/eve.json || exit 1"]
-      interval: 20s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+      test: ["CMD-SHELL", "test -f /var/log/suricata/eve.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
 
   correlation-engine:
     build:
@@ -33,89 +85,24 @@ services:
       - ./logs/suricata:/var/log/suricata:ro
       - ./corr-engine/rules:/rules:ro
       - ./findings:/findings
-    # Current Dockerfile builds to ./build/corr_engine inside /app
-    command: ["./build/corr_engine", "/rules/rules.yaml", "/var/log/suricata", "/findings"]
+    command: ["./build/corr_engine", "/rules/rules.yaml", "/var/log/suricata/eve.json", "/findings/findings.json"]
     restart: unless-stopped
+    stop_grace_period: 30s
     networks:
       - netmon
     mem_limit: 256m
     healthcheck:
-      test: ["CMD-SHELL", "test -s /findings/findings.json || exit 1"]
+      test: ["CMD-SHELL", "ps aux | grep corr_engine | grep -v grep || test -f /findings/findings.json"]
       interval: 30s
       timeout: 5s
-      retries: 10
-      start_period: 40s
+      retries: 5
+      start_period: 90s
 
-  promtail:
-    image: grafana/promtail:latest
-    container_name: netmon-promtail
-    depends_on:
-      - loki
-      - correlation-engine
-    volumes:
-      - ./promtail-config.yml:/etc/promtail/config.yml:ro
-      - ./findings:/findings:ro
-      - ./logs/suricata:/var/log/suricata:ro
-    command: -config.file=/etc/promtail/config.yml --log.level=debug
-    restart: unless-stopped
-    networks:
-      - netmon
-    mem_limit: 256m
-
-  loki:
-    image: grafana/loki:2.9.0
-    container_name: netmon-loki
-    ports:
-      - "3100:3100"
-    volumes:
-      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
-      - loki-data:/loki
-    command: -config.file=/etc/loki/local-config.yaml -log.level=debug
-    restart: unless-stopped
-    networks:
-      - netmon
-    mem_limit: 512m
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3100/ready"]
-      interval: 30s
-      timeout: 5s
-      retries: 10
-
-  grafana:
-    image: grafana/grafana:latest
-    container_name: netmon-grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=NSMadmin
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_INSTALL_PLUGINS=grafana-worldmap-panel,grafana-clock-panel
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
-      - ./grafana/dashboards:/var/lib/grafana/dashboards
-    depends_on:
-      - loki
-    restart: unless-stopped
-    networks:
-      - netmon
-    mem_limit: 512m
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
+volumes:
+  loki-data:
+  grafana-data:
 
 networks:
   netmon:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
 
-volumes:
-  loki-data:
-    driver: local
-  grafana-data:
-    driver: local

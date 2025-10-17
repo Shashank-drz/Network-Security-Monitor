@@ -1,4 +1,7 @@
 rules:
+  - name: "DEBUG: Any Alert"
+    condition: 'event_type == "alert"'
+
   - name: "Potential Port Scan Detected"
     condition: 'alert.signature == "GPL SCAN nmap"'
 
@@ -16,7 +19,7 @@ rules:
     condition: "alert.severity == 1"
 
   - name: "Malicious Outbound Connection to C2 Server"
-    condition: 'alert.signature == "ETPRO TROJAN Win32/Punto Switcher CnC Activity" and alert.dest_port == 8080'
+    condition: 'alert.signature == "ETPRO TROJAN Win32/Punto Switcher CnC Activity"'
 
   - name: "Malicious TOP Domain Query Detected"
     condition: 'alert.signature == "ET DNS Query to a *.top domain - Likely Hostile"'
