@@ -135,6 +135,7 @@ This allows analyzing historical PCAPs without Loki rejecting "old" timestamps.
    This will:
    - Build the C++ correlation engine
    - Start Suricata, Loki, Promtail, and Grafana
+   - Clear log files (eve.json and findings.json) on startup for a fresh analysis
    - Begin processing PCAPs automatically
 
 4. **Access Grafana:**
@@ -142,9 +143,10 @@ This allows analyzing historical PCAPs without Loki rejecting "old" timestamps.
    - Username: `admin`
    - Password: `NSMadmin`
    
-   Navigate to **Dashboards** → **Correlation Engine Findings (Loki)**
-   
-   If a dashboard isn't visible, go to import new dashboard → Select app/grafana/provisioning/dashboards/loki-findings-dashboard.json → Datasource = Loki (Default)
+   The **SOC Analyst Dashboard** loads by default on login, showing correlation findings with a 1-hour time window. You can also browse other dashboards:
+   - **SOC Analyst Dashboard**: Main view for correlated findings and threat timeline
+   - **Executive Dashboard**: High-level threat summary and metrics
+   - **Technical Metrics Dashboard**: Deep-dive into correlation engine performance and alert patterns
 
 ### Verifying the Setup
 
@@ -235,6 +237,11 @@ services:
   loki:
     mem_limit: 512m  # Increase for longer retention
 ```
+
+### Grafana Dashboard Configuration
+Default time ranges are set to **1 hour** for faster dashboard loading and focused analysis. Adjust dashboard time ranges in the Grafana UI using the time picker at the top right, or modify individual dashboard JSON files in `grafana/provisioning/dashboards/` if you want different defaults.
+
+The SOC Analyst Dashboard is configured as the home dashboard—it loads automatically when users log into Grafana.
 
 ## Troubleshooting
 
