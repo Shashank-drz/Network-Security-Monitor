@@ -1,22 +1,20 @@
-# Ignore application logs
-app/logs/
 
-# Ignore build artifacts from the C++ engine
+app/logs/
 app/corr-engine/build/
 
 
 
-# Ignore common OS files
+
 .DS_Store
 screenshot_guide.txt
 # runtime data
 logs/
 findings/*.json
 
-# local build artifacts
+
 corr-engine/build/
 
-# editor noise
+
 .vscode/
 .idea/
 *.swp
@@ -25,10 +23,10 @@ app/findings/*.json
 app/promtail-config.yml.bak.*
 app/*.bak.*
 
-# build artifacts
+
 app/corr-engine/build/
 
-# editors
+
 .vscode/
 .idea/
 *.swp
@@ -47,6 +45,18 @@ app/pcaps/
 app/rules/  
 replay-*
 
-# Logs/Output (not in git status, but good practice)
+
 logs/
 findings/
+corr-engine/rules/rules bak.yaml
+corr-engine/src/corr_engine bak.cpp
+docker-compose.yml.backup
+grafana/grafana.ini.backup
+grafana/provisioning/dashboards/loki-findings-dashboard.json.old
+promtail-config.yml.backup
+app/corr-engine/rules/rules bak.yaml
+app/corr-engine/src/corr_engine bak.cpp
+docker-compose.yml.backup
+app/grafana/grafana.ini.backup
+app/grafana/provisioning/dashboards/loki-findings-dashboard.json.old
+promtail-config.yml.backup

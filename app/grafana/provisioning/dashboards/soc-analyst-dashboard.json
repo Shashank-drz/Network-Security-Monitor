@@ -1,0 +1,91 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "uid": "soc-analyst-dashboard",
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "iteration": 162,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "Loki",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 80 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "showLabels": true,
+        "showLegend": true
+      },
+      "targets": [
+        {
+          "expr": "{correlation=\"true\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "Correlated Events (Real-Time)",
+      "type": "logs"
+    },
+    {
+      "datasource": "Loki",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 2,
+      "options": {},
+      "targets": [
+        {
+          "expr": "count_over_time({correlation=\"true\"}[1m])",
+          "refId": "B"
+        }
+      ],
+      "title": "Correlations per Minute",
+      "type": "stat"
+    },
+    {
+      "datasource": "Loki",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 3,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum by (rule_name) (count_over_time({correlation=\"true\"}[5m]))",
+          "refId": "C"
+        }
+      ],
+      "title": "Top Source IPs (Correlated)",
+      "type": "stat"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 37,
+  "style": "dark",
+  "tags": ["SOC Analyst"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "SOC Analyst Dashboard",
+  "version": 1
+}
