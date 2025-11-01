@@ -1,6 +1,6 @@
 rules:
-  - name: "DEBUG: Any Alert"
-    condition: 'event_type == "alert"'
+  #- name: "DEBUG: Any Alert"
+    #condition: 'event_type == "alert"'
 
   - name: "Potential Port Scan Detected"
     condition: 'alert.signature == "GPL SCAN nmap"'

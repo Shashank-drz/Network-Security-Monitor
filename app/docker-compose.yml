@@ -60,7 +60,7 @@ services:
     volumes:
       - ./pcaps:/pcaps:ro
       - ./logs/suricata:/var/log/suricata
-    command: -c "suricata-update --no-reload; touch /var/log/suricata/eve.json; while true; do if ls /pcaps/*.pcap >/dev/null 2>&1; then echo 'Processing PCAPs...'; suricata -k none -c /etc/suricata/suricata.yaml -l /var/log/suricata -r /pcaps/*.pcap; else echo 'No PCAP files; sleeping 10s...'; fi; sleep 10; done"
+    command: -c "suricata-update --no-reload; > /var/log/suricata/eve.json; while true; do if ls /pcaps/*.pcap >/dev/null 2>&1; then echo 'Processing PCAPs...'; suricata -k none -c /etc/suricata/suricata.yaml -l /var/log/suricata -r /pcaps/*.pcap; else echo 'No PCAP files; sleeping 10s...'; fi; sleep 10; done" 
     restart: unless-stopped
     stop_grace_period: 30s
     networks:
@@ -86,7 +86,8 @@ services:
       - ./logs/suricata:/var/log/suricata:ro
       - ./corr-engine/rules:/rules:ro
       - ./findings:/findings
-    command: ["./build/corr_engine", "/rules/rules.yaml", "/var/log/suricata/eve.json", "/findings/findings.json"]
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["truncate -s 0 /findings/findings.json && exec ./build/corr_engine /rules/rules.yaml /var/log/suricata/eve.json /findings/findings.json"]
     restart: unless-stopped
     stop_grace_period: 30s
     networks:
