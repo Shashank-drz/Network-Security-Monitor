@@ -23,26 +23,24 @@ scrape_configs:
         labels:
           job: corr-engine-findings
           source: correlation-engine
+          correlation: "true"
           __path__: /findings/findings.json
     pipeline_stages:
       - json:
           expressions:
             timestamp: timestamp
             rule_name: rule_name
-            correlation_id: correlation_id
-            src_ip: original_event.src_ip
-            dest_ip: original_event.dest_ip
-          action_on_failure: skip
       - labels:
           rule_name:
       - timestamp:
           source: timestamp
-          format: "2006-01-02T15:04:05.000000-0700"
+          format: "2006-01-02T15:04:05.000000+0000"
           fallback_formats:
+            - "2006-01-02T15:04:05.000000-0700"
             - "2006-01-02T15:04:05Z0700"
             - "2006-01-02T15:04:05.999999999Z07:00"
             - "RFC3339"
-          action_on_failure: skip
+          action_on_failure: fudge
   - job_name: suricata-logs
     static_configs:
       - targets: [localhost]
@@ -67,7 +65,12 @@ scrape_configs:
             - regex:
                 expression: '.*'
             - labels:
-                event_type:
+                event_type: '{{ .event_type }}'
+                alert_signature: '{{ .alert_signature }}'
+                alert_category: '{{ .alert_category }}'
+                alert_severity: '{{ .alert_severity }}'
+                src_ip: '{{ .src_ip }}'
+                dest_ip: '{{ .dest_ip }}'
       - timestamp:
           source: timestamp
           format: "2006-01-02T15:04:05.000000-0700"
