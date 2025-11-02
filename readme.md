@@ -17,11 +17,13 @@ All findings are centralized in **Grafana** via **Loki**, providing instant visi
 <details>
   <summary>Click to view dashboard screenshots</summary>
   <p align="center">
-    <em>Main Dashboard Overview</em><br>
-    <img src="screenshots/S1.png" alt="Main Dashboard">
+    <em>SOC Analyst Dashboard Overview</em><br>
+    <img src="screenshots/S1.png" alt="Default Dashboard">
     <br><br>
-    <em>Correlated Findings Timeline</em><br>
-    <img src="screenshots/S3.png" alt="Detailed Alert View">
+    <em>Execuritve Summary Dashboard</em><br>
+    <img src="screenshots/S2.png" >
+    <em>Technical Metrics Dashboard</em><br>
+    <img src="screenshots/S3.png" >
   </p>
 </details>
 
